@@ -16,16 +16,13 @@ jobs:
       - run: npm ci
       - run: npm run build
 
-  publish-gpr:
+  npm:
     needs: build
     runs-on: ubuntu-latest
     env:
       BUCKET: ${{ secrets.CDN_LIBS_AWS_BUCKET_NAME }}
       CLOUDFRONT: ${{ secrets.CDN_AWS_DISTRIBUTION_ID }}
       VERSION: ${{ github.ref_name }}
-    permissions:
-      contents: read
-      packages: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -34,7 +31,7 @@ jobs:
           registry-url: https://registry.npmjs.org
           scope: '@libercapital'
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: us-east-1
           aws-access-key-id: ${{ secrets.CDN_AWS_ACCESS_KEY_ID }}
@@ -45,3 +42,20 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - run: aws s3 sync ./lib s3://$BUCKET/libs/acquirers/$VERSION --delete
+
+  assets:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      BUCKET: ${{ secrets.CDN_LIBS_AWS_BUCKET_NAME }}
+      CLOUDFRONT: ${{ secrets.CDN_AWS_DISTRIBUTION_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          aws-access-key-id: ${{ secrets.CDN_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.CDN_AWS_SECRET_ACCESS_KEY }}
+      - run: aws s3 sync ./public s3://$BUCKET/libs/acquirers/assets --delete
+
